@@ -2,13 +2,14 @@
 
 #include <stdio.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <unistd.h>
 
 #define FILOSOFOS 5
 
 int tenedores[FILOSOFOS];
-sem_t mutex;
+pthread_mutex_t mutex;
+pthread_cond_t cond_t, cond_it;
+int cont_filosofos = 0, cont_iteraciones = 1;
 
 int get_idx_izq(int idx)
 {
@@ -60,15 +61,17 @@ bool der_disp(int idx)
 void *filosofo(void *arg)
 {
     //wait
-    sem_wait(&mutex);
+    pthread_mutex_lock(&mutex);
 
     int idx = (int)arg;
+    bool comiendo = false;
 
     //critical section
     if (izq_disp(idx) && der_disp(idx))
     {
         tomar_izq(idx);
         tomar_der(idx);
+        comiendo = true;
 
         printf("Filosofo %d:\ttenedor,tenedor\tcomiendo\n", idx + 1);
     }
@@ -84,49 +87,67 @@ void *filosofo(void *arg)
         }
     }
 
-    //printf("%d %d %d %d %d\n", tenedores[0], tenedores[1], tenedores[2], tenedores[3], tenedores[4]);
+    cont_filosofos++;
 
-    //signal to exiting
-    //printf("\nJust Exiting...\n");
-    sem_post(&mutex);
+    if (cont_filosofos < FILOSOFOS)
+    {
+        pthread_cond_wait(&cond_t, &mutex);
+    } else {
+        sleep(1);   // Dejar que coman y piensen durante 1 seg.
+        cont_iteraciones++;
+    }
+    
+    if (comiendo)
+    {
+        liberar_izq(idx);
+        liberar_der(idx);
+    }
 
-    sleep(1);
+    cont_filosofos--;
 
-    liberar_izq(idx);
-    liberar_der(idx);
-
-    return NULL;
+    if (cont_filosofos == 0)
+    {
+        // Cuando todos dejen sus cubiertos, Continuar con la siguiente iteración.
+        pthread_cond_broadcast(&cond_it);
+    } else {
+        // Continuar con el siguiente filosofo.
+        pthread_cond_broadcast(&cond_t);
+    }    
+    
+    pthread_mutex_unlock(&mutex);
+    pthread_exit(0);
 }
 
 int main(int argc, char const *argv[])
 {
     pthread_t t_filosofos[FILOSOFOS];
-    sem_init(&mutex, 0, 1);
 
-    // Initialize
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&cond_t, NULL); // Inicializar la variable condición.
+
+    // Initializar todos con tenedores
     for (int i = 0; i < FILOSOFOS; i++)
     {
         tenedores[i] = 1;
     }
 
-    for (int j = 1; j <= 10; j++)
+    while (cont_iteraciones <= 10)
     {
-        printf("################# ITERACION: %d\n", j);
+        printf("################# ITERACION: %d\n", cont_iteraciones);
+
         for (int i = 0; i < FILOSOFOS; i++)
         {
             int *idx = (int *)i;
             pthread_create(&t_filosofos[i], NULL, filosofo, (void *)idx);
         }
 
-        for (int i = 0; i < FILOSOFOS; i++)
-        {
-            pthread_join(t_filosofos[i], NULL);
-        }
-
-        //sleep(1);
+        pthread_mutex_lock(&mutex);
+        pthread_cond_wait(&cond_it, &mutex);  // Libera el mutex y espera
+        pthread_mutex_unlock(&mutex);
     }
 
-    sem_destroy(&mutex);
+    pthread_cond_destroy(&cond_t);
+    pthread_mutex_destroy(&mutex);
 
     return 0;
 }
