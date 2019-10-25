@@ -22,10 +22,11 @@
 using namespace std;
 
 typedef float decimal_t;
+typedef unsigned short int_t;
 
 char *progname_convert = "./file_matrix_convert.o";
 char *progname_product = "./file_matrix_product.o";
-unsigned short m, n, p;
+int_t m, n, p;
 decimal_t buff_decimal[N];
 
 void matrix_convert(const char *filename1, const char *filename2)
@@ -102,13 +103,12 @@ void matrix_convert(const char *filename1, const char *filename2)
   }
 }
 
-void create_file_result()
+void create_file_result(int_t _m, int_t _p)
 {
   FILE *f = fopen("result_tmp", "wb");
-  int size = m;
 
-  while (size--)
-    fwrite(buff_decimal, sizeof(decimal_t), p, f);
+  while (_m--)
+    fwrite(buff_decimal, sizeof(decimal_t), _p, f);
 
   fclose(f);
 }
@@ -160,7 +160,8 @@ int main(int argc, char const *argv[])
   }
 
   matrix_convert(argv[1], argv[2]);
-  create_file_result();
+  create_file_result(m, p);
+  //create_file_result(20000, 20000);
 
   string newfilename1 = string(argv[1]) + "_tmp";
   string newfilename2 = string(argv[2]) + "_tmp";
