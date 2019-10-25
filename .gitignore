@@ -38,3 +38,4 @@
 # Huge Files
 test/
 *_tmp
+*.txt

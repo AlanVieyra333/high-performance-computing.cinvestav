@@ -8,7 +8,7 @@
  * 
  * */
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <spawn.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <regex>
 #include <sstream>
+#include <fstream>
 
 #define N 21000 // Tamano maximo de matriz.
 
@@ -29,7 +30,7 @@ char *progname_product = "./file_matrix_product.o";
 int_t m, n, p;
 decimal_t buff_decimal[N];
 
-void matrix_convert(const char *filename1, const char *filename2)
+void matrix_convert_txt_to_bin(const char *filename1, const char *filename2)
 {
   pid_t pid_conv[2];
   int status[2];
@@ -115,40 +116,68 @@ void create_file_result(int_t _m, int_t _p)
 
 void matrix_product(const char *filename1, const char *filename2)
 {
-  pid_t pid_conv[10];
-  int status[10];
-  string prog_aux = string(progname_product) + " " + string(filename1) + " " + string(filename2) + " " + to_string(m) + " " + to_string(n) + " " + to_string(p) + " ";
-  string prog[] = {
-      prog_aux + " 0 0",
-  };
+  int_t NUM_PROC = (p*m) / 8000000; // 50 procesos para 20000*20000 -> 15min/proc
+  if(NUM_PROC == 0) NUM_PROC = 1;
+  pid_t pid_conv[NUM_PROC];
+  int status[NUM_PROC];
+  int_t block_size = p / NUM_PROC;
+  string cmd, cmd_aux = string(progname_product) + " " + string(filename1) + " " + string(filename2) + " " + to_string(m) + " " + to_string(n) + " " + to_string(p) + " ";
 
-  char *arg_proc[] = {"sh", "-c", (char *)prog[0].c_str(), NULL};
+  printf("Procesos: %d\n", NUM_PROC);
 
-  if (posix_spawn(&pid_conv[0], "/bin/sh", NULL, NULL, arg_proc, NULL) == 0)
-  {
-    if (waitpid(pid_conv[0], &status[0], 0) != -1)
+  for (int_t i = 0; i<NUM_PROC; i++) {
+    if (i + 1 == NUM_PROC)
+      cmd = cmd_aux + to_string(i * block_size) + " " + to_string(p - 1);
+    else
+      cmd = cmd_aux + to_string(i * block_size) + " " + to_string(((i + 1) * block_size) - 1);
+
+    char *arg_proc[] = {"sh", "-c", (char *)cmd.c_str(), NULL};
+
+    if (posix_spawn(&pid_conv[i], "/bin/sh", NULL, NULL, arg_proc, NULL) != 0) {
+      perror("Error al invocar proceso para la conversion de la matriz 1.\n");
+      //exit(EXIT_FAILURE);
+      //i--; // Reintentar
+    }
+  }
+
+  // Wait
+  for(int_t i = 0; i<NUM_PROC; i++) {
+    if (waitpid(pid_conv[i], &status[i], 0) != -1)
     {
-      if (status[0] == 0)
+      if (status[i] == 0)
       {
-        printf("Completado.\n");
+        printf("Proceso %d completado.\n", i+1);
       }
       else
       {
-        perror("Error al convertir los archivos a binario.");
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "Error al realizar la multiplicacion de matrices para el proceso %d.", i+1);
+        //exit(EXIT_FAILURE);
       }
     }
     else
     {
-      perror("Error al intentar esperar a los procesos.");
-      exit(EXIT_FAILURE);
+      fprintf(stderr, "Error al intentar esperar al proceso %d.", i+1);
+      //exit(EXIT_FAILURE);
     }
   }
-  else
-  {
-    perror("Error al invocar proceso para la conversion de la matriz 1.\n");
-    exit(EXIT_FAILURE);
+}
+
+void matrix_convert_bin_to_txt() {
+  FILE *f_tmp = fopen("result_tmp", "rb");
+  FILE *f = fopen("result.txt", "w");
+  float value;
+
+  for (int_t i=0; i<m; i++) {
+    for (int_t j=0; j<p; j++) {
+      fread(&value, sizeof(decimal_t), 1, f_tmp);
+      fprintf(f, "%.6f ", value);
+    }
+    fseek(f, ftell(f) - 1, SEEK_SET);
+    fprintf(f, "\n");
   }
+
+  fclose(f_tmp);
+  fclose(f);
 }
 
 int main(int argc, char const *argv[])
@@ -159,14 +188,17 @@ int main(int argc, char const *argv[])
     return 1;
   }
 
-  matrix_convert(argv[1], argv[2]);
+  printf("Convirtiendo archivos a formato binario...\n");
+  matrix_convert_txt_to_bin(argv[1], argv[2]);
   create_file_result(m, p);
   //create_file_result(20000, 20000);
 
   string newfilename1 = string(argv[1]) + "_tmp";
   string newfilename2 = string(argv[2]) + "_tmp";
 
+  printf("Multiplicando matrices...\n");
   matrix_product(newfilename1.c_str(), newfilename2.c_str());
+  matrix_convert_bin_to_txt();
 
   return 0;
 }
