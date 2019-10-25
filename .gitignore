@@ -1,5 +1,6 @@
 # SO
 .DS_Store
+.vscode
 
 # Prerequisites
 *.d
@@ -33,3 +34,7 @@
 *.exe
 *.out
 *.app
+
+# Huge Files
+test/
+*_tmp
