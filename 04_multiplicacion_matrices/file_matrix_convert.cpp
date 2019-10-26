@@ -4,7 +4,7 @@
 #define BUF_SIZE 220000     // Tamano maximo de linea. m1-210276, m1-210300
 #define N 21000             // Tamano maximo de matriz.
 
-typedef float decimal_t;
+typedef double decimal_t;
 typedef unsigned short int_t;
 
 using namespace std;
@@ -23,7 +23,7 @@ void convert_row()
 
     while((iss >> elements[cols]) ){
       cols++;
-      //printf("%f ", element);
+      //printf("%lf ", element);
     }
     //printf("\n");
 
@@ -50,7 +50,7 @@ void convert_col()
     for (int_t i = 0; i < rows; i++)
     {
       fseek(fIn, startln_pos[i], SEEK_SET);
-      fscanf(fIn, "%f", &(elements[i]));
+      fscanf(fIn, "%lf", &(elements[i]));
       startln_pos[i] = ftell(fIn);
     }
 

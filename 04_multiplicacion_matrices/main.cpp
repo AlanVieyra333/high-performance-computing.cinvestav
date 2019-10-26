@@ -22,7 +22,7 @@
 
 using namespace std;
 
-typedef float decimal_t;
+typedef double decimal_t;
 typedef unsigned short int_t;
 
 char *progname_convert = "./file_matrix_convert.o";
@@ -116,7 +116,7 @@ void create_file_result(int_t _m, int_t _p)
 
 void matrix_product(const char *filename1, const char *filename2)
 {
-  int_t NUM_PROC = (p*m) / 8000000; // 50 procesos para 20000*20000 -> 15min/proc
+  int_t NUM_PROC = (p*m) / 16000000; // 25-50 procesos para 20000*20000
   if(NUM_PROC == 0) NUM_PROC = 1;
   pid_t pid_conv[NUM_PROC];
   int status[NUM_PROC];
@@ -162,13 +162,13 @@ void matrix_product(const char *filename1, const char *filename2)
   }
 }
 
-void matrix_convert_bin_to_txt() {
+void matrix_convert_bin_to_txt(int_t _m, int_t _p) {
   FILE *f_tmp = fopen("result_tmp", "rb");
   FILE *f = fopen("result.txt", "w");
-  float value;
+  decimal_t value;
 
-  for (int_t i=0; i<m; i++) {
-    for (int_t j=0; j<p; j++) {
+  for (int_t i=0; i<_m; i++) {
+    for (int_t j=0; j<_p; j++) {
       fread(&value, sizeof(decimal_t), 1, f_tmp);
       fprintf(f, "%.6f ", value);
     }
@@ -191,14 +191,21 @@ int main(int argc, char const *argv[])
   printf("Convirtiendo archivos a formato binario...\n");
   matrix_convert_txt_to_bin(argv[1], argv[2]);
   create_file_result(m, p);
-  //create_file_result(20000, 20000);
-
+  
   string newfilename1 = string(argv[1]) + "_tmp";
   string newfilename2 = string(argv[2]) + "_tmp";
 
   printf("Multiplicando matrices...\n");
   matrix_product(newfilename1.c_str(), newfilename2.c_str());
-  matrix_convert_bin_to_txt();
+
+  printf("Escribiendo resultado.\n");
+  matrix_convert_bin_to_txt(m, p);
+
+  printf("Tarea completada, puede revisar el resultado en resultado.txt.\n");
+
+  //matrix_convert_txt_to_bin(argv[1], argv[2]);
+  //create_file_result(20000, 20000);
+  //matrix_convert_bin_to_txt(20000, 20000);
 
   return 0;
 }
