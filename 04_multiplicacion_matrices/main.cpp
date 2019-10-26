@@ -19,6 +19,7 @@
 #include <fstream>
 
 #define N 21000 // Tamano maximo de matriz.
+#define MAX_THREADS 15 // Hilos cuando la matriz es de 20000*20000
 
 using namespace std;
 
@@ -39,8 +40,8 @@ void matrix_convert_txt_to_bin(const char *filename1, const char *filename2)
   posix_spawn_file_actions_t action;
 
   memset(buff, '\0', 1024);
-  string prog1 = string(progname_convert) + " " + string(filename1) + " r";
-  string prog2 = string(progname_convert) + " " + string(filename2) + " r";
+  string prog1 = string(progname_convert) + " " + string(filename1);
+  string prog2 = string(progname_convert) + " " + string(filename2);
 
   char *argM1[] = {"sh", "-c", (char *)prog1.c_str(), NULL};
   char *argM2[] = {"sh", "-c", (char *)prog2.c_str(), NULL};
@@ -79,7 +80,7 @@ void matrix_convert_txt_to_bin(const char *filename1, const char *filename2)
         }
         else
         {
-          perror("Error al convertir los archivos a binario.");
+          perror(string("Error al convertir los archivos a binario.(" + to_string(status[0]) + " " + to_string(status[1]) + ")").c_str());
           exit(EXIT_FAILURE);
         }
       }
@@ -114,14 +115,14 @@ void create_file_result(int_t _m, int_t _p)
   fclose(f);
 }
 
-void matrix_product(const char *filename1, const char *filename2)
+void matrix_product(string filename1, string filename2)
 {
-  int_t NUM_PROC = (p*m) / 16000000; // 25-50 procesos para 20000*20000
+  int_t NUM_PROC = (p*m) * MAX_THREADS / 400000000; // 15 procesos para 20000*20000
   if(NUM_PROC == 0) NUM_PROC = 1;
   pid_t pid_conv[NUM_PROC];
   int status[NUM_PROC];
   int_t block_size = p / NUM_PROC;
-  string cmd, cmd_aux = string(progname_product) + " " + string(filename1) + " " + string(filename2) + " " + to_string(m) + " " + to_string(n) + " " + to_string(p) + " ";
+  string cmd, cmd_aux = string(progname_product) + " " + filename1 + " " + filename2 + " " + to_string(m) + " " + to_string(n) + " " + to_string(p) + " ";
 
   printf("Procesos: %d\n", NUM_PROC);
 
@@ -180,6 +181,14 @@ void matrix_convert_bin_to_txt(int_t _m, int_t _p) {
   fclose(f);
 }
 
+void delete_file(string filename) {
+  pid_t pid_tmp;
+  string cmd = "rm " + filename;
+  char *arg_proc[] = {"sh", "-c", (char *)cmd.c_str(), NULL};
+
+  posix_spawn(&pid_tmp, "/bin/sh", NULL, NULL, arg_proc, NULL);
+}
+
 int main(int argc, char const *argv[])
 {
   if (argc != 3)
@@ -196,12 +205,17 @@ int main(int argc, char const *argv[])
   string newfilename2 = string(argv[2]) + "_tmp";
 
   printf("Multiplicando matrices...\n");
-  matrix_product(newfilename1.c_str(), newfilename2.c_str());
+  matrix_product(newfilename1, newfilename2);
+
+  // Eliminar archivos temporales m1 m2.
+  delete_file(newfilename1);
+  delete_file(newfilename2);
 
   printf("Escribiendo resultado.\n");
   matrix_convert_bin_to_txt(m, p);
+  delete_file("result_tmp");
 
-  printf("Tarea completada, puede revisar el resultado en resultado.txt.\n");
+  printf("Tarea completada, puede revisar el resultado en result.txt.\n\n");
 
   //matrix_convert_txt_to_bin(argv[1], argv[2]);
   //create_file_result(20000, 20000);

@@ -3,8 +3,11 @@ DEPS=
 ARGS=-O2 -w
 MAIN=main.cpp
 
-MATRIZ_1=test/matriz_a.txt# test/matriz_a.txt
-MATRIZ_2=test/matriz_b.txt# test/matriz_b.txt
+MATRIZ_1=/media/user/MULTIBOOT/develop/matriz_1.txt# test/matriz_a.txt
+MATRIZ_2=/media/user/MULTIBOOT/develop/matriz_2.txt# test/matriz_b.txt
+
+compile: main.o file_matrix_convert.o file_matrix_product.o
+	@echo "Compilado"
 
 run: main.o file_matrix_convert.o file_matrix_product.o
 	time ./main.o ${MATRIZ_1} ${MATRIZ_2}
@@ -23,4 +26,3 @@ file_matrix_convert.o: file_matrix_convert.cpp
 
 main.o: ${MAIN} ${DEPS} ${INTERFACES}
 	@g++ -o main.o ${ARGS} ${MAIN} ${DEPS}
-	@echo "Compilado"

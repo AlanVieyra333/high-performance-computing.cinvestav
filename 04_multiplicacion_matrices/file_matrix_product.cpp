@@ -2,6 +2,7 @@
 #include <fstream>
 
 #define N 21000             // Tamano maximo de matriz.
+#define MAX_THREADS 400     // Hilos cuando la matriz es de 20000*1333
 
 typedef double decimal_t;
 typedef unsigned short int_t;
@@ -63,7 +64,7 @@ void* thread_func(void* arg) {
 void thread_manager(int_t col_start, int_t col_end)
 {
   int_t cols_proc = ((col_end - col_start) + 1);
-  int_t NUM_THREADS = cols_proc / 8; // Hilos para leer todas las filas
+  int_t NUM_THREADS = (cols_proc * n * MAX_THREADS) / (20000*1333); // Hilos para leer todas las filas
   if(NUM_THREADS == 0) NUM_THREADS = 1;
   pthread_t threads[NUM_THREADS];
   block blocks[NUM_THREADS];
