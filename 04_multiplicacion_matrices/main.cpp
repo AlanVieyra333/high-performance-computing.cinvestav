@@ -40,8 +40,8 @@ void matrix_convert_ascii_to_bin(const char *filename1, const char *filename2)
   posix_spawn_file_actions_t action;
 
   memset(buff, '\0', 1024);
-  string prog1 = progname_convert + " " + string(filename1);
-  string prog2 = progname_convert + " " + string(filename2);
+  string prog1 = progname_convert + " " + string(filename1) + " b";
+  string prog2 = progname_convert + " " + string(filename2) + " b";
 
   char *argM1[] = {"sh", "-c", (char *)prog1.c_str(), NULL};
   char *argM2[] = {"sh", "-c", (char *)prog2.c_str(), NULL};
@@ -199,7 +199,7 @@ int main(int argc, char const *argv[])
   matrix_convert_bin_to_ascii(m, p);
   remove_file("result_tmp");
 
-  printf("Tarea completada, puede revisar el resultado en result.txt.\n\n");
+  printf("\nTarea completada, puede revisar el resultado en result.txt.\n\n");
 
   //matrix_convert_txt_to_bin(argv[1], argv[2]);
   //create_file_result(20000, 20000);

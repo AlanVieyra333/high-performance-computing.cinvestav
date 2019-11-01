@@ -105,7 +105,7 @@ void read_bin_file(char* name, int_t m, int_t n) {
   
   convert_to_ascii_by_row(m, n);
 
-  printf("Matriz convertida.\nrows: %d, cols: %d\n", m, n);
+  printf("Matriz convertida a ascii: filas: %d, columnas: %d\n", m, n);
 
   fclose(fIn);
   fclose(fOut);
