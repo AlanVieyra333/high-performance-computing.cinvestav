@@ -32,7 +32,7 @@ void read_col(FILE *f, decimal_t *v, int_t col) {
 
   for (int_t i = 0; i < n; i++)  // Filas
   {
-    fread(&(v[i]), sizeof(decimal_t), 1, f);
+    fread_unlocked(&(v[i]), sizeof(decimal_t), 1, f);
     fseek(f, ftell(f) + (sizeof(decimal_t) * (p - 1)), SEEK_SET);
   }
 }
@@ -56,12 +56,12 @@ void* thread_func(void* arg) {
     fseek(f1, 0, SEEK_SET);
     for (int_t i = 0; i < m; i++) // Filas
     {
-      fread(vA, sizeof(decimal_t), n, f1);
+      fread_unlocked(vA, sizeof(decimal_t), n, f1);
 
       decimal_t cell_result = vector_product(vA, vB, 0, n-1);
       //printf("Cell prod: %lf\n", cell_result);
       fseek(f3, sizeof(decimal_t) * ((i * p) + j), SEEK_SET);
-      fwrite(&cell_result, sizeof(decimal_t), 1, f3);
+      fwrite_unlocked(&cell_result, sizeof(decimal_t), 1, f3);
     }
   }
 
@@ -110,7 +110,7 @@ void matrix_product(int_t start_col, int_t end_col)
 
     for (int_t i = 0; i < m; i++) // Filas
     {
-      fread(vA, sizeof(decimal_t), n, f1);
+      fread_unlocked(vA, sizeof(decimal_t), n, f1);
 
       decimal_t cell_result = vector_product(0, n-1);
       //printf("Cell prod: %lf\n", cell_result);
