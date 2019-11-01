@@ -19,19 +19,19 @@
 #include <fstream>
 
 #define N 21000 // Tamano maximo de matriz.
-#define MAX_THREADS 15 // Hilos cuando la matriz es de 20000*20000
+#define MAX_THREADS 16 // Hilos cuando la matriz es de 20000*20000
 
 using namespace std;
 
 typedef double decimal_t;
 typedef unsigned short int_t;
 
-char *progname_convert = "./file_matrix_convert.o";
-char *progname_product = "./file_matrix_product.o";
+string progname_convert = "./file_matrix_convert.o";
+string progname_product = "./file_matrix_product.o";
 int_t m, n, p;
 decimal_t buff_decimal[N];
 
-void matrix_convert_txt_to_bin(const char *filename1, const char *filename2)
+void matrix_convert_ascii_to_bin(const char *filename1, const char *filename2)
 {
   pid_t pid_conv[2];
   int status[2];
@@ -40,8 +40,8 @@ void matrix_convert_txt_to_bin(const char *filename1, const char *filename2)
   posix_spawn_file_actions_t action;
 
   memset(buff, '\0', 1024);
-  string prog1 = string(progname_convert) + " " + string(filename1);
-  string prog2 = string(progname_convert) + " " + string(filename2);
+  string prog1 = progname_convert + " " + string(filename1);
+  string prog2 = progname_convert + " " + string(filename2);
 
   char *argM1[] = {"sh", "-c", (char *)prog1.c_str(), NULL};
   char *argM2[] = {"sh", "-c", (char *)prog2.c_str(), NULL};
@@ -107,12 +107,9 @@ void matrix_convert_txt_to_bin(const char *filename1, const char *filename2)
 
 void create_file_result(int_t _m, int_t _p)
 {
-  FILE *f = fopen("result_tmp", "wb");
 
-  while (_m--)
-    fwrite(buff_decimal, sizeof(decimal_t), _p, f);
-
-  fclose(f);
+  string cmd = "truncate -s " + to_string(_m * _p * sizeof(decimal_t)) + " result_tmp";
+  system(cmd.c_str()); 
 }
 
 void matrix_product(string filename1, string filename2)
@@ -122,7 +119,7 @@ void matrix_product(string filename1, string filename2)
   pid_t pid_conv[NUM_PROC];
   int status[NUM_PROC];
   int_t block_size = p / NUM_PROC;
-  string cmd, cmd_aux = string(progname_product) + " " + filename1 + " " + filename2 + " " + to_string(m) + " " + to_string(n) + " " + to_string(p) + " ";
+  string cmd, cmd_aux = progname_product + " " + filename1 + " " + filename2 + " " + to_string(m) + " " + to_string(n) + " " + to_string(p) + " ";
 
   printf("Procesos: %d\n", NUM_PROC);
 
@@ -163,30 +160,17 @@ void matrix_product(string filename1, string filename2)
   }
 }
 
-void matrix_convert_bin_to_txt(int_t _m, int_t _p) {
-  FILE *f_tmp = fopen("result_tmp", "rb");
-  FILE *f = fopen("result.txt", "w");
-  decimal_t value;
+void matrix_convert_bin_to_ascii(int_t _m, int_t _n) {
+  string cmd = progname_convert + " result_tmp a " + to_string(m) + " " + to_string(_n);
+  system(cmd.c_str());
 
-  for (int_t i=0; i<_m; i++) {
-    for (int_t j=0; j<_p; j++) {
-      fread(&value, sizeof(decimal_t), 1, f_tmp);
-      fprintf(f, "%.6f ", value);
-    }
-    fseek(f, ftell(f) - 1, SEEK_SET);
-    fprintf(f, "\n");
-  }
-
-  fclose(f_tmp);
-  fclose(f);
+  cmd = "mv result_tmp.txt result.txt";
+  system(cmd.c_str());
 }
 
-void delete_file(string filename) {
-  pid_t pid_tmp;
+void remove_file(string filename) {
   string cmd = "rm " + filename;
-  char *arg_proc[] = {"sh", "-c", (char *)cmd.c_str(), NULL};
-
-  posix_spawn(&pid_tmp, "/bin/sh", NULL, NULL, arg_proc, NULL);
+  system(cmd.c_str());
 }
 
 int main(int argc, char const *argv[])
@@ -198,7 +182,7 @@ int main(int argc, char const *argv[])
   }
 
   printf("Convirtiendo archivos a formato binario...\n");
-  matrix_convert_txt_to_bin(argv[1], argv[2]);
+  matrix_convert_ascii_to_bin(argv[1], argv[2]);
   create_file_result(m, p);
   
   string newfilename1 = string(argv[1]) + "_tmp";
@@ -208,12 +192,12 @@ int main(int argc, char const *argv[])
   matrix_product(newfilename1, newfilename2);
 
   // Eliminar archivos temporales m1 m2.
-  delete_file(newfilename1);
-  delete_file(newfilename2);
+  remove_file(newfilename1);
+  remove_file(newfilename2);
 
   printf("Escribiendo resultado.\n");
-  matrix_convert_bin_to_txt(m, p);
-  delete_file("result_tmp");
+  matrix_convert_bin_to_ascii(m, p);
+  remove_file("result_tmp");
 
   printf("Tarea completada, puede revisar el resultado en result.txt.\n\n");
 
