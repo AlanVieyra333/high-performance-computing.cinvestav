@@ -75,7 +75,7 @@ void* thread_func(void* arg) {
 void thread_manager(int_t col_start, int_t col_end)
 {
   int_t cols_proc = ((col_end - col_start) + 1);
-  int_t NUM_THREADS = (cols_proc * m * MAX_THREADS) / (20000L*1333L); // Hilos para leer todas las filas
+  int_t NUM_THREADS = (cols_proc * m * MAX_THREADS) / (20000L*1250L); // Hilos para leer todas las filas
   //int_t NUM_THREADS = MAX_THREADS;
   if(NUM_THREADS == 0) NUM_THREADS = 1;
   pthread_t threads[NUM_THREADS];
@@ -86,8 +86,8 @@ void thread_manager(int_t col_start, int_t col_end)
 
   for (int_t i = 0; i < NUM_THREADS; i++)
   {
-    blocks[i].start = (i * block_size);
-    blocks[i].end = ((i + 1) * block_size) - 1;
+    blocks[i].start = col_start + (i * block_size);
+    blocks[i].end = blocks[i].start + block_size - 1;
     if (i + 1 == NUM_THREADS)
       blocks[i].end = col_end;
 

@@ -107,9 +107,11 @@ void matrix_convert_ascii_to_bin(const char *filename1, const char *filename2)
 
 void create_file_result(int_t _m, int_t _p)
 {
-
-  string cmd = "truncate -s " + to_string(_m * _p * sizeof(decimal_t)) + " result_tmp";
+  string cmd = "truncate -s 0 result_tmp";
   system(cmd.c_str()); 
+
+  cmd = "truncate -s " + to_string(_m * _p * sizeof(decimal_t)) + " result_tmp";
+  system(cmd.c_str());
 }
 
 void matrix_product(string filename1, string filename2)
