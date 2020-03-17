@@ -11,6 +11,8 @@
 #define M 8192
 #define N 8192 
 
+int nbx, nby, ntx, nty;
+
 double a[M][N], b[M][N], c[M][N];
 
 __global__ void kernelIncrementaMatriz(double *b, double *c, int m, int n) {
@@ -30,8 +32,8 @@ __global__ void kernelIncrementaMatriz(double *b, double *c, int m, int n) {
 void sumaMatricesEnDevice(double a[][N], double b[][N], double c[][N], int m, int n) {
     int size=m*n*sizeof(double);
     double *bD, *cD;
-    dim3 nb(4,4);   //16
-    dim3 nt(32,32); //1024 = 16000 hilos
+    dim3 nb(nbx, nby);   //16
+    dim3 nt(ntx, nty); //1024 = 16000 hilos
    
     cudaSetDevice(0);  
     // 1. Reservar memoria
@@ -53,6 +55,13 @@ void sumaMatricesEnDevice(double a[][N], double b[][N], double c[][N], int m, in
 
 int main() {
     int i, j;
+
+    // Implementacion de techo.
+    ntx = 32;
+    nty = 32;
+    nbx = cell(N/ntx);
+    nby = cell(N/nty);
+
     for (i=0; i<M; i++) {
         for (j=0; j<N; j++) {
             b[i][j] = c[i][j] = i+j;
